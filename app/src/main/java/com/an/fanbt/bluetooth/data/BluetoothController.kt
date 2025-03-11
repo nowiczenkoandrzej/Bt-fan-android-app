@@ -1,12 +1,15 @@
 package com.an.fanbt.bluetooth.data
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewModelScope
 import com.an.fanbt.bluetooth.domain.ConnectionResult
 import com.an.fanbt.bluetooth.domain.BtDevice
@@ -53,7 +56,9 @@ class BluetoothController(
     private val _errors = MutableSharedFlow<String>()
 
 
+
     private val btConnectionStateReceiver = BtConnectionStateReceiver { isConnected, device ->
+
         if(bluetoothAdapter?.bondedDevices?.contains(device) == true) {
             _isConnected.update { isConnected }
         } else {
@@ -69,6 +74,16 @@ class BluetoothController(
 
 
     init {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startDiscovery()
+        }
+    }
+
+    fun startDiscovery() {
         updatePairedDevices()
         context.registerReceiver(
             btConnectionStateReceiver,
@@ -83,7 +98,6 @@ class BluetoothController(
             btEnableStateReceiver,
             IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         )
-
     }
 
     fun connectToDevice(device: BtDevice): Flow<ConnectionResult> {

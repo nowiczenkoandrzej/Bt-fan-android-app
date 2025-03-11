@@ -60,9 +60,16 @@ fun PairingScreen(
     )
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.RequestPermission()
-        ) { isGranted ->
-            viewModel.setPermissionStatus(isGranted)
+            contract = ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+        val isGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            permissions[Manifest.permission.BLUETOOTH_CONNECT] ?: false &&
+                    permissions[Manifest.permission.BLUETOOTH_SCAN] ?: false
+        } else {
+            permissions[Manifest.permission.BLUETOOTH] ?: false &&
+                    permissions[Manifest.permission.BLUETOOTH_ADMIN] ?: false
+        }
+        viewModel.setPermissionStatus(isGranted)
         }
 
     LaunchedEffect(event) {
@@ -77,14 +84,44 @@ fun PairingScreen(
                 navController.navigate(Screen.Dashboard.route)
             }
             PairingEvent.CheckBTPermission -> {
-                val isGranted = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                ) == PackageManager.PERMISSION_GRANTED
+                val isGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) == PackageManager.PERMISSION_GRANTED &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.BLUETOOTH_SCAN
+                            ) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.BLUETOOTH
+                    ) == PackageManager.PERMISSION_GRANTED &&
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.BLUETOOTH_ADMIN
+                            ) == PackageManager.PERMISSION_GRANTED
+                }
+                viewModel.setPermissionStatus(isGranted)
                 viewModel.setPermissionStatus(isGranted)
             }
             PairingEvent.AskForPermission -> {
-                requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    requestPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.BLUETOOTH_CONNECT,
+                            Manifest.permission.BLUETOOTH_SCAN
+                        )
+                    )
+                } else {
+                    requestPermissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.BLUETOOTH_ADMIN
+                        )
+                    )
+                }
             }
             else -> {}
         }
@@ -96,6 +133,9 @@ fun PairingScreen(
             if(!isEnabled && state.hasBTPermission) {
                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 enableBtLauncher.launch(enableBtIntent)
+            }
+            if(state.hasBTPermission) {
+                viewModel.startDiscovery()
             }
         }
     }

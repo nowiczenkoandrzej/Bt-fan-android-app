@@ -73,6 +73,8 @@ class PairingViewModel @Inject constructor(
         }
     }
 
+    fun startDiscovery() = btController.startDiscovery()
+
     fun connectToDevice(device: BtDevice) {
         if(!state.value.hasBTPermission) {
             viewModelScope.launch {
