@@ -24,10 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -50,6 +46,11 @@ fun PairingScreen(
         .collectAsState()
         .value
 
+    val permissions = viewModel
+        .permissions
+        .collectAsState()
+        .value
+
     val event = viewModel
         .pairingEvent
         .collectAsState(initial = null).value
@@ -69,7 +70,7 @@ fun PairingScreen(
             permissions[Manifest.permission.BLUETOOTH] ?: false &&
                     permissions[Manifest.permission.BLUETOOTH_ADMIN] ?: false
         }
-        viewModel.setPermissionStatus(isGranted)
+        viewModel.updatePermissions()
         }
 
     LaunchedEffect(event) {
@@ -103,16 +104,12 @@ fun PairingScreen(
                                 Manifest.permission.BLUETOOTH_ADMIN
                             ) == PackageManager.PERMISSION_GRANTED
                 }
-                viewModel.setPermissionStatus(isGranted)
-                viewModel.setPermissionStatus(isGranted)
+                viewModel.updatePermissions()
             }
-            PairingEvent.AskForPermission -> {
+            is PairingEvent.AskForPermission -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     requestPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.BLUETOOTH_CONNECT,
-                            Manifest.permission.BLUETOOTH_SCAN
-                        )
+                        event.missingPermissions.toTypedArray()
                     )
                 } else {
                     requestPermissionLauncher.launch(
@@ -128,13 +125,13 @@ fun PairingScreen(
 
     }
 
-    LaunchedEffect(state.isBluetoothEnabled, state.hasBTPermission) {
+    LaunchedEffect(state.isBluetoothEnabled, permissions.hasBtConnectPermission) {
         state.isBluetoothEnabled?.let { isEnabled ->
-            if(!isEnabled && state.hasBTPermission) {
+            if(!isEnabled && permissions.hasBtConnectPermission) {
                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                 enableBtLauncher.launch(enableBtIntent)
             }
-            if(state.hasBTPermission) {
+            if(permissions.hasBtConnectPermission) {
                 viewModel.startDiscovery()
             }
         }

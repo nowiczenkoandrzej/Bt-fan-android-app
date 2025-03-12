@@ -8,5 +8,4 @@ data class PairingScreenState(
     val pairedDevices: List<BtDevice> = emptyList(),
     val connectedDevice: BtDevice? = null,
     val connectionJob: Job? = null,
-    val hasBTPermission: Boolean = false
 )
