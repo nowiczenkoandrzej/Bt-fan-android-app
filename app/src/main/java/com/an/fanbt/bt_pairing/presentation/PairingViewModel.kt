@@ -36,7 +36,7 @@ class PairingViewModel @Inject constructor(
 
 
     private val _pairingEvent = Channel<PairingEvent>()
-    val pairingEvent= _pairingEvent.receiveAsFlow()
+    val pairingEvent = _pairingEvent.receiveAsFlow()
 
     val permissions = permissionManager.permissions
 
@@ -46,7 +46,6 @@ class PairingViewModel @Inject constructor(
         btController.isEnabled,
         connectedDevice,
         connectionJob,
-
     ) { pairedDevices, isEnabled, device, job ->
         PairingScreenState(
             isBluetoothEnabled = isEnabled,
